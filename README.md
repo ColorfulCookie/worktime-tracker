@@ -1,8 +1,8 @@
 # Worktime Tracker
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![Validate](https://github.com/ottoherdy/worktime-tracker/actions/workflows/validate.yml/badge.svg)](https://github.com/ottoherdy/worktime-tracker/actions/workflows/validate.yml)
-[![Release](https://img.shields.io/github/v/release/ottoherdy/worktime-tracker?label=release)](https://github.com/ottoherdy/worktime-tracker/releases)
+[![Validate](https://github.com/ColorfulCookie/worktime-tracker/actions/workflows/validate.yml/badge.svg)](https://github.com/ColorfulCookie/worktime-tracker/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/ColorfulCookie/worktime-tracker?label=release)](https://github.com/ColorfulCookie/worktime-tracker/releases)
 
 **Your phone is already at work. Let it do the timekeeping.**
 
@@ -46,7 +46,7 @@ different day types — sits on top of it.
 **1 — Add the repository to HACS**
 
 HACS → three-dot menu → **Custom repositories** → add
-`https://github.com/ottoherdy/worktime-tracker` with category **Integration**.
+`https://github.com/ColorfulCookie/worktime-tracker` with category **Integration**.
 
 **2 — Download and restart**
 
