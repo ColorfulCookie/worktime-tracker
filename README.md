@@ -69,9 +69,11 @@ type: custom:worktime-tracker-card
 ```
 
 For a compact editable recent-days list, use
-`type: custom:worktime-recent-entries-card`. For bar charts, install
-[mini-graph-card](https://github.com/kalkih/mini-graph-card) through HACS and
-use the example in [`dashboards/worktime_graphs.yaml`](dashboards/worktime_graphs.yaml).
+`type: custom:worktime-recent-entries-card`. The saved-history bar chart is
+`type: custom:worktime-history-chart-card`; it reads locally stored day entries
+instead of Home Assistant's recorder snapshots. See
+[`dashboards/worktime_dashboard.yaml`](dashboards/worktime_dashboard.yaml) for
+a complete dashboard view.
 
 If the card does not appear, hard-refresh the browser once — the file is new to it.
 

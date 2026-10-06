@@ -1,0 +1,40 @@
+# Lovelace view in the same raw-configuration format as the provided dashboard.
+# The saved-history chart reads the integration's recent_days attribute.
+theme: Backend-selected
+path: worktime
+title: Worktime
+subview: false
+icon: mdi:briefcase-clock
+badges: []
+cards: []
+type: sections
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: Worktime Tracker
+        heading_style: title
+        icon: mdi:briefcase-clock
+      - type: custom:worktime-tracker-card
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Recent entries
+        heading_style: title
+        icon: mdi:history
+      - type: custom:worktime-recent-entries-card
+        history_limit: 7
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Saved work history
+        heading_style: title
+        icon: mdi:chart-bar
+      - type: custom:worktime-history-chart-card
+        name: Hours worked per day
+        entity: sensor.worktime_dominik_hours_today
+        days_to_show: 14
+
+max_columns: 4

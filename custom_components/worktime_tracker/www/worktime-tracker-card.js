@@ -1,5 +1,5 @@
 /**
- * Worktime Tracker Lovelace Card — v2.10.0
+ * Worktime Tracker Lovelace Card — v2.12.0
  * Vanilla Web Component, no build step. Auto-loaded via add_extra_js_url.
  *
  * Every option below has a control in the visual editor. The README
@@ -71,6 +71,7 @@ const DEFAULTS = {
   corner_radius: 16,
   max_width: 420,
   theme: "auto",
+  transparent_background: false,
   entity_prefix: "",
 
   // Colour
@@ -900,6 +901,7 @@ class WorktimeTrackerCard extends HTMLElement {
     const cardClasses = [
       useDark ? "theme-dark" : "",
       compact ? "compact" : "",
+      this._cfg("transparent_background") ? "transparent-background" : "",
       `font-${fontScaleKey.toLowerCase()}`,
       "wt-override",
     ].filter(Boolean).join(" ");
@@ -1699,6 +1701,7 @@ class WorktimeTrackerCard extends HTMLElement {
         letter-spacing: -0.005em;
         -webkit-font-smoothing: antialiased;
       }
+      ha-card.transparent-background { background: transparent; }
       .app {
         max-width: var(--wt-maxw, 420px);
         margin: 0 auto;
@@ -2334,6 +2337,10 @@ class WorktimeTrackerCardEditor extends HTMLElement {
           </select>
         </div>
         <div class="hint">Custom colours below override the preset for that token. Empty = use preset / theme default.</div>
+        <label class="row">
+          <input type="checkbox" data-key="transparent_background" ${this._get("transparent_background") ? "checked" : ""}>
+          <span>Transparent outer card background</span>
+        </label>
         <div class="swatch-grid" style="margin-top:8px;">
           ${this._colorRow("color_bg", "Background")}
           ${this._colorRow("color_card", "Card")}
@@ -2566,6 +2573,130 @@ if (!customElements.get("worktime-recent-entries-card")) {
   customElements.define("worktime-recent-entries-card", WorktimeRecentEntriesCard);
 }
 
+/** Charts saved Worktime Tracker day records rather than recorder snapshots. */
+class WorktimeHistoryChartCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._config = {};
+    this._hass = null;
+  }
+
+  setConfig(config) {
+    if (!config?.entity && !config?.entity_prefix) {
+      throw new Error("Set entity to the Worktime Tracker Hours today sensor.");
+    }
+    this._config = { days_to_show: 14, ...config };
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  get hass() { return this._hass; }
+
+  getCardSize() { return 4; }
+
+  _render() {
+    if (!this._hass || !this._config) return;
+
+    const todayEntity = this._config.entity ||
+      `sensor.${this._config.entity_prefix}_hours_today`;
+    const todayState = this._hass.states[todayEntity];
+    const legacy = todayEntity === "sensor.today_hours_today";
+    const prefix = this._config.entity_prefix || (legacy
+      ? ""
+      : todayEntity.replace(/^sensor\./, "").replace(/_hours_today$/, ""));
+    const ids = prefix ? {
+      yesterday: `sensor.${prefix}_hours_yesterday`,
+      week: `sensor.${prefix}_hours_this_week`,
+      month: `sensor.${prefix}_hours_this_month`,
+      lastMonth: `sensor.${prefix}_hours_last_month`,
+      year: `sensor.${prefix}_hours_this_year`,
+    } : {
+      yesterday: "sensor.today_hours_yesterday",
+      week: "sensor.this_week_hours_this_week",
+      month: "sensor.this_month_hours_this_month",
+      lastMonth: "sensor.last_month_hours_last_month",
+      year: "sensor.today_hours_this_year",
+    };
+
+    if (!todayState) {
+      this.shadowRoot.innerHTML = `<ha-card><div class="message">Worktime Tracker sensor not found: <code>${todayEntity}</code></div></ha-card>`;
+      return;
+    }
+
+    const days = Math.max(1, Math.min(60, Number(this._config.days_to_show) || 14));
+    const stored = Array.isArray(todayState.attributes.recent_days)
+      ? todayState.attributes.recent_days
+      : [];
+    const byDate = new Map(stored.map((entry) => [entry.date, entry]));
+    const now = new Date();
+    const isoDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const bars = [];
+    for (let offset = days - 1; offset >= 0; offset--) {
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+      const key = isoDate(date);
+      let entry = byDate.get(key);
+      let value = entry ? Number(entry.hours) : 0;
+      if (key === isoDate(now) && !entry) value = Number(todayState.state) || 0;
+      if (!Number.isFinite(value) || value < 0) value = 0;
+      bars.push({ date, key, value, type: entry?.type || "normal" });
+    }
+    const ceiling = Math.max(1, ...bars.map((bar) => bar.value));
+    const barHtml = bars.map((bar) => {
+      const height = bar.value > 0 ? Math.max(3, (bar.value / ceiling) * 100) : 0;
+      const label = `${bar.date.toLocaleDateString(undefined, { month: "numeric", day: "numeric" })}`;
+      return `<div class="bar-column" title="${bar.key}: ${bar.value.toFixed(2)} h${bar.type !== "normal" ? ` (${bar.type})` : ""}">
+        <div class="bar-value">${bar.value > 0 ? `${bar.value.toFixed(1)}h` : ""}</div>
+        <div class="bar-track"><div class="bar ${bar.type !== "normal" ? "special" : ""}" style="height:${height}%"></div></div>
+        <div class="bar-label">${label}</div>
+      </div>`;
+    }).join("");
+
+    const stat = (entityId) => {
+      const value = Number(this._hass.states[entityId]?.state);
+      return Number.isFinite(value) ? `${value.toFixed(2)} h` : "—";
+    };
+    const metrics = [
+      ["Today", todayEntity], ["Yesterday", ids.yesterday],
+      ["This week", ids.week], ["This month", ids.month],
+      ["Last month", ids.lastMonth], ["This year", ids.year],
+    ].map(([label, entity]) => `<div class="metric"><span>${label}</span><strong>${stat(entity)}</strong></div>`).join("");
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host { display:block; }
+        ha-card { padding:16px; }
+        .title { font-size:1.1em; font-weight:500; margin-bottom:12px; }
+        .chart { display:flex; align-items:stretch; gap:4px; height:150px; overflow-x:auto; }
+        .bar-column { flex:1 0 22px; min-width:22px; display:flex; flex-direction:column; align-items:center; }
+        .bar-value { height:18px; font-size:10px; white-space:nowrap; color:var(--secondary-text-color); }
+        .bar-track { height:100px; width:100%; display:flex; align-items:flex-end; border-bottom:1px solid var(--divider-color); }
+        .bar { width:72%; margin:auto; min-height:0; background:var(--accent-color); border-radius:3px 3px 0 0; }
+        .bar.special { background:var(--warning-color, var(--accent-color)); }
+        .bar-label { margin-top:5px; white-space:nowrap; font-size:10px; color:var(--secondary-text-color); }
+        .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:16px; }
+        .metric { display:flex; flex-direction:column; gap:3px; padding:9px; border-radius:8px; background:var(--secondary-background-color); }
+        .metric span { font-size:0.8em; color:var(--secondary-text-color); }
+        .metric strong { font-size:1em; font-weight:500; }
+        .message { padding:16px; }
+        @media(max-width:450px) { .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+      </style>
+      <ha-card>
+        <div class="title">${this._config.name || "Work hours"}</div>
+        <div class="chart">${barHtml}</div>
+        <div class="metrics">${metrics}</div>
+      </ha-card>`;
+  }
+}
+
+if (!customElements.get("worktime-history-chart-card")) {
+  customElements.define("worktime-history-chart-card", WorktimeHistoryChartCard);
+}
+
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "worktime-tracker-card",
@@ -2578,5 +2709,11 @@ window.customCards.push({
   type: "worktime-recent-entries-card",
   name: "Worktime Recent Entries",
   description: "Compact, editable list of recent worktime entries.",
+  preview: false,
+});
+window.customCards.push({
+  type: "worktime-history-chart-card",
+  name: "Worktime History Chart",
+  description: "Charts saved daily work records and shows period totals.",
   preview: false,
 });

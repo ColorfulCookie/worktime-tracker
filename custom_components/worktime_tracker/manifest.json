@@ -10,10 +10,10 @@
     "person",
     "http"
   ],
-  "documentation": "https://github.com/ottoherdy/worktime-tracker",
+  "documentation": "https://github.com/ColorfulCoookie/worktime-tracker",
   "integration_type": "service",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/ottoherdy/worktime-tracker/issues",
+  "issue_tracker": "https://github.com/ColorfulCookie/worktime-tracker/issues",
   "requirements": [],
-  "version": "2.16.0"
+  "version": "2.18.0"
 }

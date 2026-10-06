@@ -11,6 +11,10 @@ It is capped at 420 px wide by default — built for a phone first, but it rende
 cleanly on a desktop dashboard too. If it does not show up right after
 installing, hard-refresh the browser once.
 
+The visual editor's **Theme & colour** section includes a **Transparent outer
+card background** checkbox. The inner content panels keep their normal styling.
+The equivalent YAML option is `transparent_background: true`.
+
 ## Compact recent entries
 
 For a standalone editable list of the newest days, add:
@@ -23,16 +27,23 @@ history_limit: 7
 Tap a row to open the same edit dialog as the full card. `entity_prefix` and
 the usual theme/colour options are supported too.
 
-## Bar charts with mini-graph-card
+## Saved-history chart
 
-Install [mini-graph-card](https://github.com/kalkih/mini-graph-card) separately
-through HACS. The integration stores day records locally and now exposes
-yesterday and current-year totals in addition to its existing period sensors.
-See [`dashboards/worktime_graphs.yaml`](../dashboards/worktime_graphs.yaml) for
-daily bars and six period charts. The period charts plot recorded snapshots of
-each rolling total, rather than six static comparison bars. Adjust entity IDs
-to match the names Home Assistant assigned on your instance; recorder retention
-limits how far back the bars can reach.
+The chart reads the integration's locally stored `recent_days` attribute, so
+daily bars reflect edited work entries rather than Home Assistant recorder
+snapshots. It also shows current period totals from the integration sensors.
+No separate graph dependency is needed:
+
+```yaml
+type: custom:worktime-history-chart-card
+entity: sensor.today_hours_today
+days_to_show: 14
+```
+
+Set `entity` to your instance's Hours today sensor. The chart supports up to 60
+days because that is the history window exposed by the sensor. For a complete
+sections-view example, see
+[`dashboards/worktime_dashboard.yaml`](../dashboards/worktime_dashboard.yaml).
 
 [← Back to README](../README.md)
 
