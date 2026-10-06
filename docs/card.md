@@ -15,6 +15,20 @@ The visual editor's **Theme & colour** section includes a **Transparent outer
 card background** checkbox. The inner content panels keep their normal styling.
 The equivalent YAML option is `transparent_background: true`.
 
+## Home Assistant style (version 2)
+
+The `-2` card variants use Home Assistant theme colors, typography, and card
+shape while keeping the existing features. The original card types remain
+available. Replace the card type with the matching `-2` type to try the new
+style:
+
+```yaml
+type: custom:worktime-tracker-card-2
+```
+
+The companion types are `custom:worktime-recent-entries-card-2` and
+`custom:worktime-history-chart-card-2`.
+
 ## Compact recent entries
 
 For a standalone editable list of the newest days, add:

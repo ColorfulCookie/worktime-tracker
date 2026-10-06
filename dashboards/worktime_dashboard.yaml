@@ -15,7 +15,7 @@ sections:
         heading: Worktime Tracker
         heading_style: title
         icon: mdi:briefcase-clock
-      - type: custom:worktime-tracker-card
+      - type: custom:worktime-tracker-card-2
 
   - type: grid
     cards:
@@ -23,7 +23,7 @@ sections:
         heading: Recent entries
         heading_style: title
         icon: mdi:history
-      - type: custom:worktime-recent-entries-card
+      - type: custom:worktime-recent-entries-card-2
         history_limit: 7
 
   - type: grid
@@ -32,7 +32,7 @@ sections:
         heading: Saved work history
         heading_style: title
         icon: mdi:chart-bar
-      - type: custom:worktime-history-chart-card
+      - type: custom:worktime-history-chart-card-2
         name: Hours worked per day
         entity: sensor.worktime_dominik_hours_today
         days_to_show: 14

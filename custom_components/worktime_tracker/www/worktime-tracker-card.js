@@ -1,5 +1,5 @@
 /**
- * Worktime Tracker Lovelace Card — v2.12.0
+ * Worktime Tracker Lovelace Card — v2.14.0
  * Vanilla Web Component, no build step. Auto-loaded via add_extra_js_url.
  *
  * Every option below has a control in the visual editor. The README
@@ -402,6 +402,7 @@ class WorktimeTrackerCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
+    this._forceStyleV2 = false;
     this._hass = null;
     this._tick = null;
     this._editing = null;
@@ -458,6 +459,7 @@ class WorktimeTrackerCard extends HTMLElement {
 
   _cfg(key) {
     if (this._config && key in this._config) return this._config[key];
+    if (this._forceStyleV2 && key === "color_preset") return "ha";
     return DEFAULTS[key];
   }
 
@@ -901,6 +903,8 @@ class WorktimeTrackerCard extends HTMLElement {
     const cardClasses = [
       useDark ? "theme-dark" : "",
       compact ? "compact" : "",
+      this._forceStyleV2 ? "ha-style-v2" : "",
+      this._forceStyleV2 && !("max_width" in this._config) ? "ha-style-v2-fluid" : "",
       this._cfg("transparent_background") ? "transparent-background" : "",
       `font-${fontScaleKey.toLowerCase()}`,
       "wt-override",
@@ -1689,6 +1693,31 @@ class WorktimeTrackerCard extends HTMLElement {
         --wt-danger:       #f87171;
       }
 
+      /* Version 2: use Home Assistant theme tokens and native card chrome. */
+      ha-card.ha-style-v2 {
+        --wt-bg: var(--ha-card-background, var(--card-background-color, var(--primary-background-color)));
+        --wt-card: var(--ha-card-background, var(--card-background-color, var(--primary-background-color)));
+        --wt-paper: var(--secondary-background-color);
+        --wt-ink: var(--primary-text-color);
+        --wt-ink-2: var(--secondary-text-color);
+        --wt-muted: var(--secondary-text-color);
+        --wt-muted-2: var(--secondary-text-color);
+        --wt-line: var(--divider-color);
+        --wt-line-2: var(--divider-color);
+        --wt-accent: var(--primary-color);
+        --wt-accent-soft: color-mix(in srgb, var(--primary-color) 15%, transparent);
+        background: var(--ha-card-background, var(--card-background-color, var(--primary-background-color)));
+        border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
+        border-radius: var(--ha-card-border-radius, 12px);
+        box-shadow: var(--ha-card-box-shadow, none);
+        overflow: hidden;
+        font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif);
+        letter-spacing: normal;
+      }
+      ha-card.ha-style-v2-fluid .app { max-width: none; }
+      ha-card.ha-style-v2 .today,
+      ha-card.ha-style-v2 .section { border-radius: var(--ha-card-border-radius, 12px); }
+
       ha-card {
         background: var(--wt-bg);
         border: none;
@@ -2141,7 +2170,10 @@ class WorktimeTrackerCardEditor extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this._config = {};
+    this._cardType = "worktime-tracker-card";
   }
+
+  set cardType(type) { this._cardType = type; }
 
   setConfig(config) {
     const incoming = JSON.stringify(config || {});
@@ -2167,11 +2199,19 @@ class WorktimeTrackerCardEditor extends HTMLElement {
 
   _get(key) {
     if (key in this._config) return this._config[key];
+    return this._defaultFor(key);
+  }
+
+  _defaultFor(key) {
+    if (this._cardType.endsWith("-2")) {
+      if (key === "color_preset") return "ha";
+      if (key === "max_width") return 0;
+    }
     return DEFAULTS[key];
   }
 
   _patch(key, value) {
-    if (value === DEFAULTS[key] || value === "" || value === null || value === undefined) {
+    if (value === this._defaultFor(key) || value === "" || value === null || value === undefined) {
       const next = { ...this._config };
       delete next[key];
       this._config = next;
@@ -2199,9 +2239,9 @@ class WorktimeTrackerCardEditor extends HTMLElement {
       }
       return s;
     };
-    const lines = ["type: custom:worktime-tracker-card"];
+    const lines = [`type: custom:${this._cardType}`];
     for (const [k, v] of Object.entries(this._config)) {
-      if (v === DEFAULTS[k]) continue;
+      if (v === this._defaultFor(k)) continue;
       if (v === "" || v === null || v === undefined) continue;
       lines.push(`${k}: ${yamlString(v)}`);
     }
@@ -2329,6 +2369,7 @@ class WorktimeTrackerCardEditor extends HTMLElement {
         <div class="input-row">
           <label>Accent preset</label>
           <select id="ed-preset">
+            <option value="ha" ${colorPreset === "ha" ? "selected" : ""}>Home Assistant</option>
             <option value="orange" ${colorPreset === "orange" ? "selected" : ""}>Orange</option>
             <option value="blue" ${colorPreset === "blue" ? "selected" : ""}>Blue</option>
             <option value="green" ${colorPreset === "green" ? "selected" : ""}>Green</option>
@@ -2538,11 +2579,29 @@ if (!customElements.get("worktime-tracker-card")) {
   customElements.define("worktime-tracker-card", WorktimeTrackerCard);
 }
 
+class WorktimeTrackerCardV2 extends WorktimeTrackerCard {
+  constructor() {
+    super();
+    this._forceStyleV2 = true;
+  }
+
+  static getConfigElement() {
+    const editor = document.createElement("worktime-tracker-card-editor");
+    editor.cardType = "worktime-tracker-card-2";
+    return editor;
+  }
+}
+
+if (!customElements.get("worktime-tracker-card-2")) {
+  customElements.define("worktime-tracker-card-2", WorktimeTrackerCardV2);
+}
+
 /** Compact recent-days card that reuses the full card's edit dialog. */
 class WorktimeRecentEntriesCard extends HTMLElement {
   setConfig(config) {
     this._config = { history_limit: 7, ...config };
-    this._card = document.createElement("worktime-tracker-card");
+    const cardTag = this.constructor.innerCardTag || "worktime-tracker-card";
+    this._card = document.createElement(cardTag);
     this._card.setConfig({
       ...this._config,
       show_topbar: false,
@@ -2569,8 +2628,14 @@ class WorktimeRecentEntriesCard extends HTMLElement {
   getCardSize() { return 3; }
 }
 
+class WorktimeRecentEntriesCardV2 extends WorktimeRecentEntriesCard {}
+WorktimeRecentEntriesCardV2.innerCardTag = "worktime-tracker-card-2";
+
 if (!customElements.get("worktime-recent-entries-card")) {
   customElements.define("worktime-recent-entries-card", WorktimeRecentEntriesCard);
+}
+if (!customElements.get("worktime-recent-entries-card-2")) {
+  customElements.define("worktime-recent-entries-card-2", WorktimeRecentEntriesCardV2);
 }
 
 /** Charts saved Worktime Tracker day records rather than recorder snapshots. */
@@ -2670,12 +2735,17 @@ class WorktimeHistoryChartCard extends HTMLElement {
       <style>
         :host { display:block; }
         ha-card { padding:16px; }
+        ha-card.ha-style-v2 {
+          border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
+          border-radius: var(--ha-card-border-radius, 12px);
+          box-shadow: var(--ha-card-box-shadow, none);
+        }
         .title { font-size:1.1em; font-weight:500; margin-bottom:12px; }
         .chart { display:flex; align-items:stretch; gap:4px; height:150px; overflow-x:auto; }
         .bar-column { flex:1 0 22px; min-width:22px; display:flex; flex-direction:column; align-items:center; }
         .bar-value { height:18px; font-size:10px; white-space:nowrap; color:var(--secondary-text-color); }
         .bar-track { height:100px; width:100%; display:flex; align-items:flex-end; border-bottom:1px solid var(--divider-color); }
-        .bar { width:72%; margin:auto; min-height:0; background:var(--accent-color); border-radius:3px 3px 0 0; }
+        .bar { width:72%; margin:0 auto; min-height:0; background:var(--accent-color); border-radius:3px 3px 0 0; }
         .bar.special { background:var(--warning-color, var(--accent-color)); }
         .bar-label { margin-top:5px; white-space:nowrap; font-size:10px; color:var(--secondary-text-color); }
         .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:16px; }
@@ -2685,7 +2755,7 @@ class WorktimeHistoryChartCard extends HTMLElement {
         .message { padding:16px; }
         @media(max-width:450px) { .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
       </style>
-      <ha-card>
+      <ha-card class="${this._styleV2 ? "ha-style-v2" : ""}">
         <div class="title">${this._config.name || "Work hours"}</div>
         <div class="chart">${barHtml}</div>
         <div class="metrics">${metrics}</div>
@@ -2693,8 +2763,18 @@ class WorktimeHistoryChartCard extends HTMLElement {
   }
 }
 
+class WorktimeHistoryChartCardV2 extends WorktimeHistoryChartCard {
+  constructor() {
+    super();
+    this._styleV2 = true;
+  }
+}
+
 if (!customElements.get("worktime-history-chart-card")) {
   customElements.define("worktime-history-chart-card", WorktimeHistoryChartCard);
+}
+if (!customElements.get("worktime-history-chart-card-2")) {
+  customElements.define("worktime-history-chart-card-2", WorktimeHistoryChartCardV2);
 }
 
 window.customCards = window.customCards || [];
@@ -2706,14 +2786,33 @@ window.customCards.push({
   documentationURL: "https://github.com/ottoherdy/worktime-tracker",
 });
 window.customCards.push({
+  type: "worktime-tracker-card-2",
+  name: "Worktime Tracker Card 2 (HA style)",
+  description: "HA-themed version of the full Worktime Tracker card.",
+  preview: false,
+  documentationURL: "https://github.com/ottoherdy/worktime-tracker",
+});
+window.customCards.push({
   type: "worktime-recent-entries-card",
   name: "Worktime Recent Entries",
   description: "Compact, editable list of recent worktime entries.",
   preview: false,
 });
 window.customCards.push({
+  type: "worktime-recent-entries-card-2",
+  name: "Worktime Recent Entries 2 (HA style)",
+  description: "HA-themed editable list of recent worktime entries.",
+  preview: false,
+});
+window.customCards.push({
   type: "worktime-history-chart-card",
   name: "Worktime History Chart",
   description: "Charts saved daily work records and shows period totals.",
+  preview: false,
+});
+window.customCards.push({
+  type: "worktime-history-chart-card-2",
+  name: "Worktime History Chart 2 (HA style)",
+  description: "HA-themed saved-history chart with period totals.",
   preview: false,
 });

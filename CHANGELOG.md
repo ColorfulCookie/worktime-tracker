@@ -6,6 +6,14 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 Entries before 2.1.0 predate this file and are not reconstructed.
 
+## [2.20.0] — 2026-10-06
+
+### Added
+- Added `-2` variants of the tracker, recent-entry, and history-chart cards.
+  They retain the existing card behavior while using Home Assistant theme
+  colors, typography, borders, and card sizing. The original card types remain
+  available for existing dashboards.
+
 ## [2.15.0] — 2026-09-02
 
 ### Added
