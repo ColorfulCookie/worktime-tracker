@@ -13,11 +13,13 @@ Entity IDs carry the instance slug. On the first instance that means
 | Entity | State | Key attributes |
 |---|---|---|
 | `sensor.today_hours_today` | Hours worked today, as a float | `arrival`, `departure`, `planned_end`, `lunch`, `human_readable`, `overtime`, `time_remaining`, `status`, `recent_days` (last 60 days) |
+| `sensor.today_hours_yesterday` | Hours credited yesterday | — |
 | `sensor.today_status` | `off_duty` / `at_work` / `overtime` / `done` | — |
 | `sensor.this_week_hours_this_week` | Total hours this ISO week | `hours`, `overtime`, `weekly_target`, `days` |
 | `sensor.last_week_hours_last_week` | Total hours last ISO week | `hours`, `overtime`, `days` |
 | `sensor.this_month_hours_this_month` | Total hours this calendar month | `hours`, `human_readable`, `overtime`, `month` |
 | `sensor.last_month_hours_last_month` | Total hours last calendar month | `hours`, `human_readable`, `overtime`, `month` |
+| `sensor.today_hours_this_year` | Total hours credited from January through today | — |
 
 Every entry in a `days` or `recent_days` list has the same shape:
 

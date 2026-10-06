@@ -48,11 +48,13 @@ async def async_setup_entry(
     coordinator: WorktimeCoordinator = entry.runtime_data
     async_add_entities([
         TodaySensor(coordinator, entry),
+        YesterdaySensor(coordinator, entry),
         StatusSensor(coordinator, entry),
         ThisWeekSensor(coordinator, entry),
         LastWeekSensor(coordinator, entry),
         ThisMonthSensor(coordinator, entry),
         LastMonthSensor(coordinator, entry),
+        ThisYearSensor(coordinator, entry),
     ])
 
 
@@ -153,6 +155,25 @@ class StatusSensor(_Base):
     @property
     def native_value(self) -> str:
         return self.coordinator.status()
+
+
+class YesterdaySensor(_Base):
+    """Credited work hours from the previous local day."""
+
+    _key = "hours_yesterday"
+    _attr_name = "Hours yesterday"
+    _attr_native_unit_of_measurement = UnitOfTime.HOURS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:clock-outline"
+    _attr_suggested_display_precision = 2
+
+    def __init__(self, coordinator: WorktimeCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_device_info = _device(entry)
+
+    @property
+    def native_value(self) -> float:
+        return self.coordinator.hours_worked_yesterday()
 
 
 class ThisWeekSensor(_Base):
@@ -288,3 +309,22 @@ class LastMonthSensor(_Base):
             "avg_arrival": avg[0] if avg else None,
             "avg_departure": avg[1] if avg else None,
         }
+
+
+class ThisYearSensor(_Base):
+    """Credited work hours from January through today."""
+
+    _key = "hours_this_year"
+    _attr_name = "Hours this year"
+    _attr_native_unit_of_measurement = UnitOfTime.HOURS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:calendar"
+    _attr_suggested_display_precision = 2
+
+    def __init__(self, coordinator: WorktimeCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_device_info = _device(entry)
+
+    @property
+    def native_value(self) -> float:
+        return self.coordinator.hours_worked_this_year()

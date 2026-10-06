@@ -1,5 +1,5 @@
 /**
- * Worktime Tracker Lovelace Card — v2.9.8
+ * Worktime Tracker Lovelace Card — v2.10.0
  * Vanilla Web Component, no build step. Auto-loaded via add_extra_js_url.
  *
  * Every option below has a control in the visual editor. The README
@@ -2531,6 +2531,41 @@ if (!customElements.get("worktime-tracker-card")) {
   customElements.define("worktime-tracker-card", WorktimeTrackerCard);
 }
 
+/** Compact recent-days card that reuses the full card's edit dialog. */
+class WorktimeRecentEntriesCard extends HTMLElement {
+  setConfig(config) {
+    this._config = { history_limit: 7, ...config };
+    this._card = document.createElement("worktime-tracker-card");
+    this._card.setConfig({
+      ...this._config,
+      show_topbar: false,
+      show_today: false,
+      show_this_week: false,
+      show_last_week: false,
+      show_this_month: false,
+      show_last_month: false,
+      show_history: true,
+      show_lookup: false,
+      show_footer: false,
+      show_edit: true,
+    });
+    this.replaceChildren(this._card);
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this._card) this._card.hass = hass;
+  }
+
+  get hass() { return this._hass; }
+
+  getCardSize() { return 3; }
+}
+
+if (!customElements.get("worktime-recent-entries-card")) {
+  customElements.define("worktime-recent-entries-card", WorktimeRecentEntriesCard);
+}
+
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "worktime-tracker-card",
@@ -2538,4 +2573,10 @@ window.customCards.push({
   description: "Phone-first work-time tracker with Today / week / month / history / lookup.",
   preview: false,
   documentationURL: "https://github.com/ottoherdy/worktime-tracker",
+});
+window.customCards.push({
+  type: "worktime-recent-entries-card",
+  name: "Worktime Recent Entries",
+  description: "Compact, editable list of recent worktime entries.",
+  preview: false,
 });

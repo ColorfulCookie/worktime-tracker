@@ -1199,9 +1199,10 @@ class WorktimeCoordinator(DataUpdateCoordinator):
         if not replaced:
             self.history.append(entry)
 
-        # Trim to max 180 entries
-        if len(self.history) > 180:
-            self.history = self.history[-180:]
+        # Keep a little over a full year so year-to-date totals and edits
+        # remain available across leap years and sparse work schedules.
+        if len(self.history) > 400:
+            self.history = self.history[-400:]
 
     # ------------------------------------------------------------------
     # Computed values
@@ -1286,6 +1287,30 @@ class WorktimeCoordinator(DataUpdateCoordinator):
             )
             if not already_done and self.arrival is not None:
                 total += self.hours_worked_today()
+        return round(total, 2)
+
+    def hours_worked_yesterday(self) -> float:
+        """Return credited hours for the previous local calendar day."""
+        yesterday = dt_util.now().date() - timedelta(days=1)
+        return round(sum(
+            float(entry.get("hours", 0.0))
+            for entry in self._all_credited_days(yesterday, yesterday)
+        ), 2)
+
+    def hours_worked_this_year(self) -> float:
+        """Return credited hours in the current year, including live today."""
+        today = dt_util.now().date()
+        start = date(today.year, 1, 1)
+        total = sum(
+            float(entry.get("hours", 0.0))
+            for entry in self._all_credited_days(start, today)
+        )
+        already_done = any(
+            e.get("date") == today.isoformat() and e.get("departure")
+            for e in self.history
+        )
+        if not already_done and self.arrival is not None:
+            total += self.hours_worked_today()
         return round(total, 2)
 
     def hours_worked_last_week(self) -> float:
@@ -1691,8 +1716,8 @@ class WorktimeCoordinator(DataUpdateCoordinator):
         self.leave_records = raw.get("leave_records", [])
         self.sheets_sync = raw.get("sheets_sync", {}) or {}
 
-        if len(self.history) > 180:
-            self.history = self.history[-180:]
+        if len(self.history) > 400:
+            self.history = self.history[-400:]
 
         if "auto_departure_enabled" in raw:
             self._auto_departure_enabled = bool(raw["auto_departure_enabled"])

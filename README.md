@@ -68,6 +68,11 @@ Add a manual card to any dashboard:
 type: custom:worktime-tracker-card
 ```
 
+For a compact editable recent-days list, use
+`type: custom:worktime-recent-entries-card`. For bar charts, install
+[mini-graph-card](https://github.com/kalkih/mini-graph-card) through HACS and
+use the example in [`dashboards/worktime_graphs.yaml`](dashboards/worktime_graphs.yaml).
+
 If the card does not appear, hard-refresh the browser once — the file is new to it.
 
 ---
